@@ -1,0 +1,5 @@
+.vs
+*.bat
+PlanetTweaks/bin
+PlanetTweaks/obj
+/PlanetTweaks/Properties/AssemblyInfo.cs
