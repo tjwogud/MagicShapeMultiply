@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Xml.Serialization;
+using UnityEngine;
 using UnityModManagerNet;
 
 namespace MagicShapeMultiply
@@ -22,5 +23,10 @@ namespace MagicShapeMultiply
         public bool MultiplyOrBPM = false;
         public bool ShowEvent = true;
         public bool RealOrTileBPM = true;
+
+        public KeyCode key = KeyCode.M;
+        public bool ctrl = true;
+        public bool alt = false;
+        public bool shift = false;
     }
 }

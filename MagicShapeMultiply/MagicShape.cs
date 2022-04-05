@@ -8,12 +8,12 @@ namespace MagicShapeMultiply
     {
         public static void Multiply()
         {
-            Main.Logger.Log($"{ffxFlashPlus.legacyFlash}");
             List<scrFloor> floors = scnEditor.instance.customLevel.levelMaker.listFloors;
             List<LevelEvent> events = scnEditor.instance.events;
             List<scrFloor> selected = scnEditor.instance.selectedFloors;
             if (selected == null || selected.Count <= 1)
                 return;
+            scnEditor.instance.SaveState(false);
             double bpm = scnEditor.instance.customLevel.levelData.bpm;
             double prevBpm = bpm;
             for (int i = 0; i <= selected[0].seqID; i++)
