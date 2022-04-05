@@ -45,10 +45,12 @@ namespace MagicShapeMultiply
         private static readonly string[] texts1 = new string[] { "내각", "외각", "그대로" };
         private static readonly string[] texts2 = new string[] { "BPM", "승수(권장하지 않음)" };
         private static readonly string[] texts3 = new string[] { "토끼/달팽이", "소용돌이" };
+        private static readonly string[] texts4 = new string[] { "체감 BPM", "타일 BPM" };
 
         private static readonly string[] eng_texts1 = new string[] { "Internal", "External", "Just" };
         private static readonly string[] eng_texts2 = new string[] { "BPM", "Multiplier(Not Recommended)" };
         private static readonly string[] eng_texts3 = new string[] { "Rabbit/Snail", "Twirl" };
+        private static readonly string[] eng_texts4 = new string[] { "Real BPM", "Tile BPM" };
 
         public static void OnGUI(UnityModManager.ModEntry modEntry)
         {
@@ -63,7 +65,7 @@ namespace MagicShapeMultiply
                 style3 = new GUIStyle(GUI.skin.button);
                 style3.fixedWidth = 90;
             }
-            switch (GUILayout.Toolbar(Settings.EnableInOrOut ? (Settings.InOrOut ? 0 : 1) : 2, RDString.language == SystemLanguage.Korean ? texts1 : eng_texts1, style1))
+            switch (GUILayout.Toolbar(Settings.EnableInOrOut ? (Settings.InOrOut ? 0 : 1) : 2, RDString.language == SystemLanguage.Korean ? texts1 : eng_texts1, GUILayout.Width(230)))
             {
                 case 0:
                     Settings.EnableInOrOut = true;
@@ -77,12 +79,15 @@ namespace MagicShapeMultiply
                     Settings.EnableInOrOut = false;
                     break;
             }
-            Settings.MultiplyOrBPM = GUILayout.Toolbar(Settings.MultiplyOrBPM ? 1 : 0, RDString.language == SystemLanguage.Korean ? texts2 : eng_texts2, style2) == 0 ? false : true;
+            Settings.MultiplyOrBPM = GUILayout.Toolbar(Settings.MultiplyOrBPM ? 1 : 0, RDString.language == SystemLanguage.Korean ? texts2 : eng_texts2, style2) == 1;
             GUILayout.BeginHorizontal();
-            Settings.ShowEvent = GUILayout.Toolbar(Settings.ShowEvent ? 0 : 1, RDString.language == SystemLanguage.Korean ? texts3 : eng_texts3, style3) == 0 ? true : false;
+            Settings.ShowEvent = GUILayout.Toolbar(Settings.ShowEvent ? 0 : 1, RDString.language == SystemLanguage.Korean ? texts3 : eng_texts3, style3) == 0;
             GUILayout.Label(RDString.language == SystemLanguage.Korean ? "(보여지는 이펙트)" : "(Event That You Can See)");
             GUILayout.EndHorizontal();
-            Settings.KeepSelecteds = GUILayout.Toggle(Settings.KeepSelecteds, RDString.language == SystemLanguage.Korean ? "Ctrl + F 시 선택된 타일 유지" : "Keep Selected Tiles When You Press Ctrl + F");
+            GUILayout.BeginHorizontal();
+            Settings.RealOrTileBPM = GUILayout.Toolbar(Settings.RealOrTileBPM ? 0 : 1, RDString.language == SystemLanguage.Korean ? texts4 : eng_texts4, style3) == 0; ;
+            GUILayout.Label(RDString.language == SystemLanguage.Korean ? "(맞출 기준 BPM)" : "(Multiply BPM)");
+            GUILayout.EndHorizontal();
         }
 
         public static void OnUpdate(UnityModManager.ModEntry modEntry, float value)

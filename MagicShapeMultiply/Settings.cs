@@ -4,7 +4,7 @@ using UnityModManagerNet;
 
 namespace MagicShapeMultiply
 {
-    public class Settings : UnityModManager.ModSettings, IDrawable
+    public class Settings : UnityModManager.ModSettings
     {
         public override void Save(UnityModManager.ModEntry modEntry)
         {
@@ -17,15 +17,10 @@ namespace MagicShapeMultiply
         {
         }
 
-        [Draw("Enable 'Internal Angle or External Angle' Option")]
         public bool EnableInOrOut = true;
-        [Draw("Internal Angle or External Angle")]
         public bool InOrOut = true;
-        [Draw("Keep Selecteds When Show Floor Nums")]
-        public bool KeepSelecteds = true;
-        [Draw("Multiply or BPM")]
         public bool MultiplyOrBPM = false;
-        [Draw("Show 'SetSpeed' Event Icon Instead of 'Twirl' Event")]
         public bool ShowEvent = true;
+        public bool RealOrTileBPM = true;
     }
 }

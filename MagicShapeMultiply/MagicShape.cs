@@ -8,13 +8,14 @@ namespace MagicShapeMultiply
     {
         public static void Multiply()
         {
+            Main.Logger.Log($"{ffxFlashPlus.legacyFlash}");
             List<scrFloor> floors = scnEditor.instance.customLevel.levelMaker.listFloors;
             List<LevelEvent> events = scnEditor.instance.events;
             List<scrFloor> selected = scnEditor.instance.selectedFloors;
             if (selected == null || selected.Count <= 1)
                 return;
-            float bpm = scnEditor.instance.customLevel.levelData.bpm;
-            float prevBpm = bpm;
+            double bpm = scnEditor.instance.customLevel.levelData.bpm;
+            double prevBpm = bpm;
             for (int i = 0; i <= selected[0].seqID; i++)
             {
                 scrFloor floor = floors[i];
@@ -36,16 +37,15 @@ namespace MagicShapeMultiply
                 || e.eventType == LevelEventType.Twirl));
             scnEditor.instance.ApplyEventsToFloors();
             bool ccw = selected[0].isCCW;
+            if (Main.Settings.RealOrTileBPM)
+                bpm *= 180 / GetAngleLength(selected[0], ccw);
             for (int i = selected[0].seqID; i <= selected.Last().seqID; i++)
             {
                 scrFloor floor = floors[i];
                 if (floor.nextfloor == null)
                     continue;
                 if (floor.midSpin)
-                {
-                    Main.Logger.Log($"{floor.seqID} is midspin");
                     continue;
-                }
                 double angle = GetAngleLength(floor, ccw);
                 if (Main.Settings.EnableInOrOut && angle % 180 != 0)
                     if (Main.Settings.InOrOut == angle > 180)
@@ -66,10 +66,10 @@ namespace MagicShapeMultiply
                     continue;
                 if (floor.midSpin)
                     continue;
-                float angle = GetAngleLength(floor, floor.isCCW);
-                float applyBpm = bpm * angle / 180;
-                decimal minus = (decimal)applyBpm - (decimal)prevBpm;
-                if (!(minus >= 0 && minus <= (decimal)0.001))
+                double angle = GetAngleLength(floor, floor.isCCW);
+                double applyBpm = bpm * angle / 180;
+                double minus = applyBpm - prevBpm;
+                if (!(minus >= 0 && minus <= 0.001))
                 {
                     int eventFloor = floor.seqID;
                     if (floor.seqID > 0)
@@ -93,14 +93,12 @@ namespace MagicShapeMultiply
                     prevBpm = applyBpm;
                 }
             }
-            Patch.first = selected[0].seqID;
-            Patch.last = selected.Last().seqID;
             scnEditor.instance.RemakePath(true);
         }
 
-        public static float GetAngleLength(scrFloor floor, bool ccw)
+        public static double GetAngleLength(scrFloor floor, bool ccw)
         {
-            float angle;
+            double angle;
             if (floor.customLevel.levelData.isOldLevel)
             {
                 angle = GetAngle(floor);
@@ -121,23 +119,23 @@ namespace MagicShapeMultiply
             return angle;
         }
 
-        public static float GetFreeAngle(scrFloor floor)
+        public static double GetFreeAngle(scrFloor floor)
         {
             if (floor.seqID == 0)
                 return 0;
             if (Midspin(floor.seqID - 1))
                 return (GetFreeAngle(floor.GetFloor(floor.seqID - 1)) + 180) % 360;
-            float angle = AngleData(floor.seqID - 1);
+            double angle = AngleData(floor.seqID - 1);
             return angle % 360;
         }
 
-        public static float GetAngle(scrFloor floor)
+        public static double GetAngle(scrFloor floor)
         {
             if (floor.seqID == 0)
                 return 90;
             if (PathData(floor.seqID - 1) == '!')
                 return (GetAngle(floor.GetFloor(floor.seqID - 1)) + 180) % 360;
-            float angle = DefaultAngle(floor);
+            double angle = DefaultAngle(floor);
             scrFloor prev = floor.GetFloor(floor.seqID - 1);
             if (angle == -1)
             {
@@ -148,8 +146,8 @@ namespace MagicShapeMultiply
             return angle % 360;
         }
 
-        public static float seven = 900 / 7;
-        public static float five = 108;
+        public static double seven = 900 / 7;
+        public static double five = 108;
 
         public static bool Midspin(int id)
         {
@@ -164,12 +162,23 @@ namespace MagicShapeMultiply
             return scnEditor.instance.customLevel.levelData.pathData[id];
         }
 
-        public static float AngleData(int id)
+        public static double AngleData(int id)
         {
             return scnEditor.instance.customLevel.levelData.angleData[id].FixAngle();
         }
 
-        public static float FixAngle(this float angle)
+        public static double FixAngle(this float angle)
+        {
+            if (angle == 999)
+                return angle;
+            while (angle >= 360)
+                angle -= 360;
+            while (angle < 0)
+                angle += 360;
+            return angle;
+        }
+
+        public static double FixAngle(this double angle)
         {
             if (angle == 999)
                 return angle;
@@ -185,7 +194,7 @@ namespace MagicShapeMultiply
             return floor.customLevel.levelMaker.listFloors[id];
         }
 
-        public static float DefaultAngle(scrFloor floor)
+        public static double DefaultAngle(scrFloor floor)
         {
             switch (PathData(floor.seqID - 1))
             {
