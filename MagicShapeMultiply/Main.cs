@@ -1,5 +1,13 @@
-﻿using HarmonyLib;
-using System.Reflection;
+﻿using ADOFAI;
+using DG.Tweening;
+using EditorTabLib;
+using EditorTabLib.Properties;
+using EditorTabLib.Utils;
+using HarmonyLib;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using UnityEngine;
 using UnityModManagerNet;
 
@@ -8,20 +16,36 @@ namespace MagicShapeMultiply
     public static class Main
     {
         public static UnityModManager.ModEntry.ModLogger Logger;
+        public static UnityModManager.ModEntry ModEntry;
         public static Harmony harmony;
         public static bool IsEnabled = false;
-        public static Settings Settings { get; set; }
+
+        public static Sprite Icon { get; private set; }
+
+        public static float f = 0.25f;
 
         public static void Setup(UnityModManager.ModEntry modEntry)
         {
+            ModEntry = modEntry;
             Logger = modEntry.Logger;
             modEntry.OnToggle = OnToggle;
-            modEntry.OnGUI = OnGUI;
-            modEntry.OnUpdate = OnUpdate;
-            modEntry.OnSaveGUI = OnSaveGUI;
-            Logger.Log("Loading Settings...");
-            Settings = UnityModManager.ModSettings.Load<Settings>(modEntry);
+            Logger.Log("Loading Localizations...");
+            Localizations.Load();
             Logger.Log("Load Completed!");
+            Logger.Log("Loading Icon...");
+            string path = Path.Combine(modEntry.Path, "icon.png");
+            if (File.Exists(path))
+            {
+                byte[] data = File.ReadAllBytes(path);
+                Texture2D texture = new Texture2D(0, 0);
+                if (texture.LoadImage(data))
+                {
+                    Icon = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+                    Logger.Log("Load Completed!");
+                    return;
+                }
+            }
+            Logger.Log("Can't load Icon! try reinstall the mod.");
         }
 
         private static bool OnToggle(UnityModManager.ModEntry modEntry, bool value)
@@ -30,94 +54,164 @@ namespace MagicShapeMultiply
             if (value)
             {
                 harmony = new Harmony(modEntry.Info.Id);
-                harmony.PatchAll(Assembly.GetExecutingAssembly());
+                harmony.PatchAll();
+                CustomTabManager.AddTab(
+                    icon: Icon,
+                    type: 501,
+                    name: "MagicShape",
+                    title: new Dictionary<SystemLanguage, string>() {
+                        { SystemLanguage.Korean, "마법진" },
+                        { SystemLanguage.English, "Magic Shape" }
+                    },
+                    properties: new List<EditorTabLib.Properties.Property>()
+                    {
+                        new Property_Enum<MagicShape.MultiplyType>(
+                            name: "multiplyType",
+                            value_default: MagicShape.MultiplyType.Bpm,
+                            key: "msm.editor.multiplyType"),
+                        new Property_InputField(
+                            name: "beatsPerMinute",
+                            type: Property_InputField.InputType.Float,
+                            value_default: 100f,
+                            min: 0.001f,
+                            max: 10000f,
+                            unit: "bpm",
+                            key: "msm.editor.bpm",
+                            enableIf: new Dictionary<string, string>() { { "multiplyType", "Bpm" } }),
+                        new Property_InputField(
+                            name: "bpmMultiplier",
+                            type: Property_InputField.InputType.Float,
+                            value_default: 1f,
+                            min: 1E-7f,
+                            max: 128f,
+                            unit: "X",
+                            key: "msm.editor.multiplier",
+                            enableIf: new Dictionary<string, string>() { { "multiplyType", "Multiplier" } }),
+                        new Property_Enum<MagicShape.MultiplyType>(
+                            name: "setSpeedType",
+                            value_default: MagicShape.MultiplyType.Bpm,
+                            key: "msm.editor.setSpeedType"),
+                        new Property_Enum<MagicShape.Angle>(
+                            name: "direction",
+                            value_default: MagicShape.Angle.Internal,
+                            key: "msm.editor.direction",
+                            canBeDisabled: true,
+                            startEnabled: true,
+                            disableIf: new Dictionary<string, string>() { { "changeShape", "Enabled" } }),
+                        new Property_Enum<MagicShape.ShowEvent>(
+                            name: "showEvent",
+                            value_default: MagicShape.ShowEvent.SetSpeed,
+                            key: "msm.editor.showEvent",
+                            disableIf: new Dictionary<string, string>() { { "changeShape", "Enabled" } }),
+                        new Property_Enum<ToggleBool>(
+                            name: "changeShape",
+                            value_default: ToggleBool.Disabled,
+                            key: "msm.editor.changeShape",
+                            enableIf: new Dictionary<string, string>() { { "multiplyType", "Multiplier" } }),
+                        new Property_InputField(
+                            name: "angleCorrection",
+                            type: Property_InputField.InputType.Int,
+                            value_default: -1,
+                            min: -1,
+                            max: 1,
+                            key: "msm.editor.angleCorrection",
+                            canBeDisabled: true,
+                            startEnabled: true,
+                            enableIf: new Dictionary<string, string>() { { "changeShape", "Enabled" } }),
+                        new Property_Button(
+                            name: "multiply",
+                            action: () => {
+                                using (new SaveStateScope(scnEditor.instance, false, false, false))
+                                {
+                                    LevelEvent levelEvent = scnEditor.instance.settingsPanel.selectedEvent;
+                                    MagicShape.MultiplyType multiplyType = (MagicShape.MultiplyType)levelEvent.data["multiplyType"];
+                                    float bpm = (float)levelEvent.data["beatsPerMinute"];
+                                    float multiplier = (float)levelEvent.data["bpmMultiplier"];
+                                    MagicShape.MultiplyType setSpeedType = (MagicShape.MultiplyType)levelEvent.data["setSpeedType"];
+                                    MagicShape.Angle? direction = levelEvent.disabled["direction"] ? null : (MagicShape.Angle)levelEvent.data["direction"];
+                                    MagicShape.ShowEvent showEvent = (MagicShape.ShowEvent)levelEvent.data["showEvent"];
+                                    bool changeShape = (ToggleBool)levelEvent.data["changeShape"] == ToggleBool.Enabled;
+                                    int? angleCorrection = levelEvent.disabled["angleCorrection"] ? null : (int)levelEvent.data["angleCorrection"];
+                                    Tuple<int, Dictionary<string, object>> result;
+                                    switch (multiplyType)
+                                    {
+                                        case MagicShape.MultiplyType.Bpm: {
+                                            result = MagicShape.MultiplyWithBPM(bpm, setSpeedType, showEvent, direction);
+                                            break;
+                                        }
+                                        case MagicShape.MultiplyType.Multiplier: {
+                                            result = !changeShape
+                                                ? MagicShape.MultiplyWithMultiplier(multiplier, setSpeedType, showEvent, direction)
+                                                : MagicShape.MultiplyWithAngle(multiplier, angleCorrection, setSpeedType);
+                                            break;
+                                        }
+                                        default:
+                                            return;
+                                    }
+                                    switch (result.Item1)
+                                    {
+                                        case -1:
+                                            PopupUtils.Show(Localizations.GetString("msm.editor.dialog.error", out string value) ? value : string.Empty);
+                                            break;
+                                        case -2:
+                                            PopupUtils.Show(Localizations.GetString("msm.editor.dialog.selectionIsSingleOrNone", out value) ? value : string.Empty);
+                                            break;
+                                        case -3:
+                                            PopupUtils.ShowParams(Localizations.GetString("msm.editor.dialog.containsExceptionEvents", out value) ? value : string.Empty, (result.Item2["eventTypes"] as List<LevelEventType>).Select(type => RDString.Get("editor." + type.ToString())).ToArray());
+                                            break;
+                                        case -4:
+                                            PopupUtils.Show(Localizations.GetString("msm.editor.dialog.tooBigAngle", out value, result.Item2) ? value : string.Empty);
+                                            break;
+                                        case -5:
+                                            PopupUtils.Show(Localizations.GetString("msm.editor.dialog.invalidAngle", out value, result.Item2) ? value : string.Empty);
+                                            break;
+                                    }
+                                }
+                            },
+                            key: "msm.editor.multiply")
+                    },
+                    saveSetting: true,
+                    onFocused: () => {
+                        Patches.SelectedColorsPatch.blue = true;
+                        DOTween.Kill("selectedColorTween", false);
+                        scrFloor lastSelected = scnEditor.instance.Get<scrFloor>("lastSelectedFloor");
+                        if (lastSelected)
+                            lastSelected.SetColor(lastSelected.floorRenderer.deselectedColor);
+                        scnEditor.instance.selectedFloors.ForEach(f =>
+                        {
+                            f.SetColor(f.floorRenderer.deselectedColor);
+                            scnEditor.instance.Method("ShowSelectedColor", new object[] { f, 1 }, new Type[] { typeof(scrFloor), typeof(float) });
+                        });
+                    },
+                    onUnFocused: () => {
+                        Patches.SelectedColorsPatch.blue = false;
+                        DOTween.Kill("selectedColorTween", false);
+                        scrFloor lastSelected = scnEditor.instance.Get<scrFloor>("lastSelectedFloor");
+                        if (lastSelected)
+                            lastSelected.SetColor(lastSelected.floorRenderer.deselectedColor);
+                        scnEditor.instance.selectedFloors.ForEach(f =>
+                        {
+                            f.SetColor(f.floorRenderer.deselectedColor);
+                            scnEditor.instance.Method("ShowSelectedColor", new object[] { f, 1 }, new Type[] { typeof(scrFloor), typeof(float) });
+                        });
+                    },
+                    onChange: (e, name, prevValue, value) =>
+                    {
+                        if (name == "multiplyType" && value is MagicShape.MultiplyType.Bpm)
+                        {
+                            e.data["changeShape"] = ToggleBool.Disabled;
+                            e.UpdatePanel();
+                        }
+                        return true;
+                    }
+                );
             }
             else
             {
                 harmony.UnpatchAll(modEntry.Info.Id);
+                CustomTabManager.DeleteTab(501);
             }
             return true;
-        }
-
-        private static readonly string[] texts1 = new string[] { "내각", "외각", "그대로" };
-        private static readonly string[] texts2 = new string[] { "BPM", "승수" };
-        private static readonly string[] texts3 = new string[] { "토끼/달팽이", "소용돌이" };
-        private static readonly string[] texts4 = new string[] { "체감 BPM", "타일 BPM" };
-
-        private static readonly string[] eng_texts1 = new string[] { "Internal", "External", "Just" };
-        private static readonly string[] eng_texts2 = new string[] { "BPM", "Multiplier" };
-        private static readonly string[] eng_texts3 = new string[] { "Rabbit/Snail", "Twirl" };
-        private static readonly string[] eng_texts4 = new string[] { "Real BPM", "Tile BPM" };
-
-        private static bool changing;
-
-        public static void OnGUI(UnityModManager.ModEntry modEntry)
-        {
-            switch (GUILayout.Toolbar(Settings.EnableInOrOut ? (Settings.InOrOut ? 0 : 1) : 2, RDString.language == SystemLanguage.Korean ? texts1 : eng_texts1, GUILayout.Width(230)))
-            {
-                case 0:
-                    Settings.EnableInOrOut = true;
-                    Settings.InOrOut = true;
-                    break;
-                case 1:
-                    Settings.EnableInOrOut = true;
-                    Settings.InOrOut = false;
-                    break;
-                case 2:
-                    Settings.EnableInOrOut = false;
-                    break;
-            }
-            Settings.MultiplyOrBPM = GUILayout.Toolbar(Settings.MultiplyOrBPM ? 1 : 0, RDString.language == SystemLanguage.Korean ? texts2 : eng_texts2, GUILayout.Width(230)) == 1;
-            GUILayout.BeginHorizontal();
-            Settings.ShowEvent = GUILayout.Toolbar(Settings.ShowEvent ? 0 : 1, RDString.language == SystemLanguage.Korean ? texts3 : eng_texts3, GUILayout.Width(230)) == 0;
-            GUILayout.Label(RDString.language == SystemLanguage.Korean ? "(보여지는 이펙트)" : "(Event That You Can See)");
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            Settings.RealOrTileBPM = GUILayout.Toolbar(Settings.RealOrTileBPM ? 0 : 1, RDString.language == SystemLanguage.Korean ? texts4 : eng_texts4, GUILayout.Width(230)) == 0; ;
-            GUILayout.Label(RDString.language == SystemLanguage.Korean ? "(맞출 기준 BPM)" : "(Multiply BPM)");
-            GUILayout.EndHorizontal();
-            GUILayout.Space(10);
-            GUILayout.BeginHorizontal();
-            Settings.ctrl = GUILayout.Toggle(Settings.ctrl, "Ctrl");
-            Settings.alt = GUILayout.Toggle(Settings.alt, "Alt");
-            Settings.shift = GUILayout.Toggle(Settings.shift, "Shift");
-            GUILayout.Space(20);
-            if (!changing && GUILayout.Button($"{Settings.key}"))
-                changing = true;
-            else if (changing)
-            {
-                GUILayout.Button(RDString.language == SystemLanguage.Korean ? "바꾸는중..." : "Changing...");
-                Event e = Event.current;
-                if (e.isKey && e.type == EventType.KeyDown)
-                {
-                    Settings.key = e.keyCode;
-                    changing = false;
-                }
-            }
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
-        }
-
-        public static void OnUpdate(UnityModManager.ModEntry modEntry, float value)
-        {
-            if (!IsEnabled)
-                return;
-            if (scnEditor.instance == null || !scnEditor.instance.isEditingLevel)
-                return;
-            bool ctrl = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl) || Input.GetKey(KeyCode.LeftMeta) || Input.GetKey(KeyCode.RightMeta);
-            bool alt = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
-            bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-            if ((!Settings.ctrl || ctrl) && (!Settings.alt || alt) && (!Settings.shift || shift) && Input.GetKeyDown(Settings.key))
-            {
-                MagicShape.Multiply();
-            }
-        }
-
-        public static void OnSaveGUI(UnityModManager.ModEntry modEntry)
-        {
-            Logger.Log("Saving Settings...");
-            Settings.Save(modEntry);
-            Logger.Log("Save Completed!");
         }
     }
 }
