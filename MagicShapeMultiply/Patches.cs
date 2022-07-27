@@ -12,10 +12,10 @@ namespace MagicShapeMultiply
             public static void Postfix(ref string __result, ref string key, ref bool exists, ref Dictionary<string, object> parameters)
             {
                 //Main.Logger.Log(key);
-                if (Localizations.GetString(key, out string value))
+                if (Main.Localization.Get(key, out string value, parameters))
                 {
                     exists = true;
-                    __result = RDString.ReplaceParameters(value, parameters);
+                    __result = value;
                     //Main.Logger.Log("value");
                 }
                 //Main.Logger.Log("-------------------------");

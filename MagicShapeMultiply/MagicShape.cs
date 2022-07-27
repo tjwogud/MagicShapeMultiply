@@ -1,8 +1,8 @@
 ﻿using ADOFAI;
+using EditorTabLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 
 namespace MagicShapeMultiply
@@ -22,6 +22,60 @@ namespace MagicShapeMultiply
         public enum ShowEvent
         {
             SetSpeed, Twirl
+        }
+
+        public static void Multiply()
+        {
+            using (new SaveStateScope(scnEditor.instance, false, false, false))
+            {
+                LevelEvent levelEvent = CustomTabManager.GetEvent((LevelEventType)501);
+                if (levelEvent == null)
+                    return;
+                MultiplyType multiplyType = (MultiplyType)levelEvent.data["multiplyType"];
+                float bpm = (float)levelEvent.data["beatsPerMinute"];
+                float multiplier = (float)levelEvent.data["bpmMultiplier"];
+                MultiplyType setSpeedType = (MultiplyType)levelEvent.data["setSpeedType"];
+                Angle? direction = levelEvent.disabled["direction"] ? null : (Angle)levelEvent.data["direction"];
+                ShowEvent showEvent = (ShowEvent)levelEvent.data["showEvent"];
+                bool changeShape = (ToggleBool)levelEvent.data["changeShape"] == ToggleBool.Enabled;
+                int? angleCorrection = levelEvent.disabled["angleCorrection"] ? null : (int)levelEvent.data["angleCorrection"];
+                Tuple<int, Dictionary<string, object>> result;
+                switch (multiplyType)
+                {
+                    case MultiplyType.Bpm:
+                        {
+                            result = MultiplyWithBPM(bpm, setSpeedType, showEvent, direction);
+                            break;
+                        }
+                    case MultiplyType.Multiplier:
+                        {
+                            result = !changeShape
+                                ? MultiplyWithMultiplier(multiplier, setSpeedType, showEvent, direction)
+                                : MultiplyWithAngle(multiplier, angleCorrection, setSpeedType);
+                            break;
+                        }
+                    default:
+                        return;
+                }
+                switch (result.Item1)
+                {
+                    case -1:
+                        PopupUtils.Show(Main.Localization["msm.editor.dialog.error"]);
+                        break;
+                    case -2:
+                        PopupUtils.Show(Main.Localization["msm.editor.dialog.selectionIsSingleOrNone"]);
+                        break;
+                    case -3:
+                        PopupUtils.ShowParams(Main.Localization["msm.editor.dialog.containsExceptionEvents"], (result.Item2["eventTypes"] as List<LevelEventType>).Select(type => RDString.Get("editor." + type.ToString())).ToArray());
+                        break;
+                    case -4:
+                        PopupUtils.Show(Main.Localization["msm.editor.dialog.tooBigAngle", parameters: result.Item2]);
+                        break;
+                    case -5:
+                        PopupUtils.Show(Main.Localization["msm.editor.dialog.invalidAngle", parameters: result.Item2]);
+                        break;
+                }
+            }
         }
 
         private static List<LevelEventType> exceptionEventTypes = new List<LevelEventType>() { LevelEventType.FreeRoam, LevelEventType.Pause, LevelEventType.Hold };
