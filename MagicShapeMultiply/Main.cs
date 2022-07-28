@@ -166,7 +166,7 @@ namespace MagicShapeMultiply
                             action: () => MagicShape.Multiply(),
                             key: "msm.editor.multiply")
                     },
-                    saveSetting: false,
+                    saveSetting: true,
                     onFocused: () => {
                         Patches.SelectedColorsPatch.blue = true;
                         DOTween.Kill("selectedColorTween", false);
