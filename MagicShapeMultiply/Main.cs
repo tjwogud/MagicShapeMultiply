@@ -35,6 +35,7 @@ namespace MagicShapeMultiply
                 if (scnEditor.instance == null || scnEditor.instance.playMode)
                     return;
                 if ((!Settings.ctrl || Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+                    && (!Settings.alt || Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
                     && (!Settings.shift || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
                     && Input.GetKeyDown(Settings.key))
                     MagicShape.Multiply();
