@@ -9,7 +9,6 @@ namespace MagicShapeMultiply
     {
         public static void Load(UnityModManager.ModEntry modEntry)
         {
-            LoadAssembly(Path.Combine(modEntry.Path, "Localizations.dll"));
             AccessTools.Method($"{typeof(Startup).Namespace}.Main:Setup").Invoke(null, new object[] { modEntry });
         }
 

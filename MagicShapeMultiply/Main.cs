@@ -89,7 +89,7 @@ namespace MagicShapeMultiply
             Logger.Log("Loading Settings...");
             Settings = UnityModManager.ModSettings.Load<Settings>(modEntry);
             Logger.Log("Load Completed!");
-            Localization = Localization.Load(modEntry, "1QcrRL6LAs8WxJj_hFsEJa3CLM5g3e8Ya0KQlRKXwdlU", 61572944, (keyValue) => (TypeUtils.ReplaceClassName(keyValue.Item1), keyValue.Item2));
+            Localization = Localization.Load("1QcrRL6LAs8WxJj_hFsEJa3CLM5g3e8Ya0KQlRKXwdlU", 61572944, modEntry, onLoad: (keyValue) => (TypeUtils.ReplaceClassName(keyValue.Item1), keyValue.Item2));
         }
 
         private static bool OnToggle(UnityModManager.ModEntry modEntry, bool value)
