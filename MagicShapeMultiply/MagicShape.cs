@@ -136,7 +136,7 @@ namespace MagicShapeMultiply
                         if (floor.seqID > 0)
                             while ((eventFloor - 1).GetFloor().midSpin)
                                 eventFloor--;
-                        editor.AddEvent(eventFloor, LevelEventType.Twirl);
+                        editor.events.Add(new LevelEvent(eventFloor, LevelEventType.Twirl));
                         ccw = !ccw;
                     }
                 }
@@ -237,7 +237,7 @@ namespace MagicShapeMultiply
                         if (floor.seqID > 0)
                             while ((eventFloor - 1).GetFloor().midSpin)
                                 eventFloor--;
-                        editor.AddEvent(eventFloor, LevelEventType.Twirl);
+                        editor.events.Add(new LevelEvent(eventFloor, LevelEventType.Twirl));
                         ccw = !ccw;
                     }
                 }
