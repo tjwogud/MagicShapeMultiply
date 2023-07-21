@@ -366,7 +366,7 @@ namespace MagicShapeMultiply
         public static double GetAngleLength(this scrFloor floor, bool? ccw = null)
         {
             double angle = floor.GetAngle();
-            if (CustomLevel.instance.levelData.isOldLevel)
+            if (scnGame.instance.levelData.isOldLevel)
             {
                 angle = ccw ?? floor.isCCW
                     ? angle - floor.nextfloor.GetAngle()
