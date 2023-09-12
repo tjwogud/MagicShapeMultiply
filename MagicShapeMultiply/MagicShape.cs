@@ -37,7 +37,7 @@ namespace MagicShapeMultiply
                 MultiplyType setSpeedType = (MultiplyType)levelEvent.data["setSpeedType"];
                 Angle? direction = levelEvent.disabled["direction"] ? null : (Angle)levelEvent.data["direction"];
                 ShowEvent showEvent = (ShowEvent)levelEvent.data["showEvent"];
-                bool changeShape = (ToggleBool)levelEvent.data["changeShape"] == ToggleBool.Enabled;
+                bool changeShape = (bool)levelEvent.data["changeShape"] == true;
                 int? angleCorrection = levelEvent.disabled["angleCorrection"] ? null : (int)levelEvent.data["angleCorrection"];
                 Tuple<int, Dictionary<string, object>> result;
                 switch (multiplyType)

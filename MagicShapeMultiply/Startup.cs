@@ -38,19 +38,22 @@ namespace MagicShapeMultiply
                 if (info == null)
                     continue;
                 UnityModManager.ModInfo modInfo = File.ReadAllText(info).FromJson<UnityModManager.ModInfo>();
-                installeds.Add(modInfo.Id, UnityModManager.ParseVersion(modInfo.Version));
+                if (!File.Exists(Path.Combine(path, modInfo.AssemblyName)))
+                    continue;
+                installeds[modInfo.Id] = UnityModManager.ParseVersion(modInfo.Version);
             }
 
             string[][] requirements = modEntry.LoadAfter
                 .Where(_ => _.StartsWith("R:"))
-                .Select(_ => _.Substring(_.IndexOf(':') + 1).Split('/'))
-                .Where(_ => !installeds.ContainsKey(_[1]) || (_.Length == 3 && (installeds[_[1]] < UnityModManager.ParseVersion(_[2]))))
+                .Select(_ => _.Substring(2).Split('/'))
                 .ToArray();
             if (requirements.Length == 0)
                 return true;
 
             if (!UnityModManager.HasNetworkConnection())
             {
+                if (requirements.Where(_ => installeds.ContainsKey(_[1])).Count() == requirements.Count())
+                    return true;
                 modEntry.OnGUI = _ =>
                 {
                     GUILayout.Label("Some required mods are missing!");
@@ -83,6 +86,7 @@ namespace MagicShapeMultiply
                 return false;
             }
 
+            List<UnityModManager.Param.Mod> modParams = typeof(UnityModManager).Get<UnityModManager.Param>("Params").ModParams;
             List<UnityModManager.ModEntry> loadeds = new List<UnityModManager.ModEntry>();
             List<string[]> faileds = new List<string[]>();
             bool restart = false;
@@ -98,9 +102,28 @@ namespace MagicShapeMultiply
                     string zipPath;
                     using (var client = new WebClient())
                     {
-
                         string data = client.DownloadString(new Uri($"https://raw.githubusercontent.com/{author}/{id}/main/Repository.json"));
-                        string url = data.FromJson<UnityModManager.Repository>().Releases[0].DownloadUrl;
+                        UnityModManager.Repository repo = data.FromJson<UnityModManager.Repository>();
+                        if (installeds.ContainsKey(id) && installeds[id] >= Version.Parse(repo.Releases[0].Version))
+                        {
+                            modEntry.Logger.Log("Latest mod is already installed");
+                            UnityModManager.Param.Mod installedModParam = modParams.Find(mod => mod.Id == id);
+                            UnityModManager.ModEntry installedModEntry = UnityModManager.FindMod(id);
+                            if ((installedModParam != null && !installedModParam.Enabled) || (installedModEntry != null && (installedModEntry.Enabled || installedModEntry.Active)))
+                            {
+                                if (installedModParam != null)
+                                    installedModParam.Enabled = true;
+                                if (installedModEntry != null)
+                                {
+                                    installedModEntry.Enabled = true;
+                                    installedModEntry.Active = true;
+                                }
+                                modEntry.Logger.Log("Activated mod");
+                            }
+                            modEntry.Logger.Log("Skipping to next");
+                            continue;
+                        }
+                        string url = repo.Releases[0].DownloadUrl;
                         modEntry.Logger.Log($"Found latest release: {url}");
 
                         zipPath = Path.Combine(UnityModManager.modsPath, id + ".adofaimod");
@@ -169,14 +192,34 @@ namespace MagicShapeMultiply
                 return false;
             }
 
-            void add(UnityModManager.ModEntry _, float __)
+            if (loadeds.Any())
+                AddLoadedMods.Add(loadeds, modEntry);
+            return true;
+        }
+
+        private class AddLoadedMods : MonoBehaviour
+        {
+            private static UnityModManager.ModEntry modEntry;
+            private static List<UnityModManager.ModEntry> loadeds;
+
+            public static void Add(List<UnityModManager.ModEntry> loadeds, UnityModManager.ModEntry modEntry = null)
             {
-                UnityModManager.modEntries.InsertRange(UnityModManager.modEntries.IndexOf(modEntry), loadeds);
-                modEntry.OnLateUpdate -= add;
+                AddLoadedMods.modEntry = modEntry;
+                AddLoadedMods.loadeds = loadeds;
+                new GameObject("AddLoadedMods").AddComponent<AddLoadedMods>();
             }
 
-            modEntry.OnLateUpdate += add;
-            return true;
+            private void Awake()
+            {
+                DontDestroyOnLoad(gameObject);
+            }
+
+            private void LateUpdate()
+            {
+                lock (UnityModManager.modEntries)
+                    UnityModManager.modEntries.InsertRange(UnityModManager.modEntries.IndexOf(modEntry), loadeds);
+                Destroy(gameObject);
+            }
         }
 
         public static string FindInfo(string path)
