@@ -3,6 +3,7 @@ using DG.Tweening.Core;
 using DG.Tweening.Plugins.Options;
 using System;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -22,7 +23,7 @@ namespace MagicShapeMultiply
             popup.SetActive(true);
             scnEditor.instance.ShowPopup(true, (scnEditor.PopupType)100, skipAnim);
             popup.transform.SetParent(scnEditor.instance.popupWindow.transform, false);
-            popup.transform.Find("popupText").GetComponent<Text>().text = message;
+            popup.transform.Find("popupText").GetComponent<TMP_Text>().text = message;
             Button button = popup.transform.Find("buttonOk").GetComponent<Button>();
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() => Hide());
@@ -39,8 +40,8 @@ namespace MagicShapeMultiply
             scnEditor.instance.ShowPopup(true, (scnEditor.PopupType)100, skipAnim);
             paramsPopup.transform.SetParent(scnEditor.instance.popupWindow.transform, false);
             scnEditor.instance.popupWindow.GetComponent<RectTransform>().SetAnchorPosY(450);
-            paramsPopup.transform.Find("title").GetComponent<Text>().text = title;
-            paramsPopup.transform.Find("params").GetComponent<Text>().text = string.Join("", @params.Select(param => "- " + param + "\n"));
+            paramsPopup.transform.Find("title").GetComponent<TMP_Text>().text = title;
+            paramsPopup.transform.Find("params").GetComponent<TMP_Text>().text = string.Join("", @params.Select(param => "- " + param + "\n"));
             Button button = paramsPopup.transform.Find("buttonOK").GetComponent<Button>();
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() => {
