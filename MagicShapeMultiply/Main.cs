@@ -224,9 +224,13 @@ namespace MagicShapeMultiply
                         new Property_InputField(
                             name: "vertexCount",
                             type: Property_InputField.InputType.Int,
-                            value_default: 1,
-                            min: 4,
+                            value_default: 4,
+                            min: 2,
                             key: "msm.editor.vertexCount"),
+                        new Property_Bool(
+                            name: "inverseAngle",
+                            value_default: false,
+                            key: "msm.editor.inverseAngle"),
                         new Property_Button(
                             name: "create",
                             action: () => {
@@ -253,6 +257,7 @@ namespace MagicShapeMultiply
                                         endIndex = temp;
                                     }
                                     int vertex = (int)levelEvent.data["vertexCount"];
+                                    int inverse = (bool)levelEvent.data["inverseAngle"] ? -1 : 1;
 
                                     List<float> angles = new List<float>();
                                     for (int i = 1; i < vertex; i++)
@@ -260,7 +265,7 @@ namespace MagicShapeMultiply
                                         for (int j = startIndex; j <= endIndex; j++)
                                         {
                                             float angle = j == 0 ? 0 : ADOBase.lm.listFloors[j].floatDirection;
-                                            angles.Add(angle == 999 ? 999 : (angle - 360f / vertex * i));
+                                            angles.Add(angle == 999 ? 999 : (angle - 360f / vertex * i * inverse));
                                         }
                                     }
                                     scnEditor.instance.levelData.angleData.InsertRange(endIndex, angles);

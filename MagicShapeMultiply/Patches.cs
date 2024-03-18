@@ -79,6 +79,7 @@ namespace MagicShapeMultiply
                             endIndex = temp;
                         }
                         int vertex = (int)levelEvent.data["vertexCount"];
+                        int inverse = (bool)levelEvent.data["inverseAngle"] ? -1 : 1;
 
                         GameObject fakeFloor = GameObject.Find("FakeFloors") ?? new GameObject("FakeFloors");
                         scrFloor start = ADOBase.lm.listFloors[startIndex];
@@ -100,7 +101,7 @@ namespace MagicShapeMultiply
                             for (int j = startIndex; j <= endIndex; j++)
                             {
                                 float n = j == 0 ? 0 : ADOBase.lm.listFloors[j].floatDirection;
-                                angle = n == 999 ? prev.entryangle : ((-n + 90 + (360f / vertex * i)) * Mathf.PI / 180);
+                                angle = n == 999 ? prev.entryangle : ((-n + 90 + (360f / vertex * i * inverse)) * Mathf.PI / 180);
 
                                 prev.exitangle = angle;
 
@@ -111,7 +112,6 @@ namespace MagicShapeMultiply
                                 obj.transform.parent = fakeFloor.transform;
                                 scrFloor floor = obj.GetComponent<scrFloor>();
                                 floor.entryangle = (angle + Mathf.PI) % (Mathf.PI * 2);
-                                floor.floatDirection = (n - 90 - (360f / vertex * i) + 360) % 360;
                                 prev.nextfloor = floor;
                                 prev.midSpin = n == 999;
                                 prev.UpdateAngle();
