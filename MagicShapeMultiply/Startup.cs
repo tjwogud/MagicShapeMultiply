@@ -38,7 +38,7 @@ namespace MagicShapeMultiply
                 if (info == null)
                     continue;
                 UnityModManager.ModInfo modInfo = File.ReadAllText(info).FromJson<UnityModManager.ModInfo>();
-                if (!File.Exists(Path.Combine(path, modInfo.AssemblyName)))
+                if (!File.Exists(Path.Combine(path, modInfo.AssemblyName ?? modInfo.Id)))
                     continue;
                 installeds[modInfo.Id] = UnityModManager.ParseVersion(modInfo.Version);
             }
